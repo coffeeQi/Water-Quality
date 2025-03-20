@@ -1,0 +1,618 @@
+---
+title: "R coding Tips for making a map"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: false
+    toc_depth: 3
+    number_sections: true
+    lof: yes
+    lot: yes
+
+---
+
+# Why R?
+The purpose of this report is to provide some help to other people learning R for the purpose of creating maps. Consider this more of a reference document than a "how to" though.
+
+R is great because it can streamline data analysis, create great figures that you can't do with Excel, and add figures and interactive maps directly into the report. It also works without internet, even when creating and viewing an html page!  My home internet is REALLY slow if I am trying to work in ArcGIS online. With R, there are none of those issues.
+
+Developing the first map and coding can be hard, but subsequent ones are a lot easier, because you just pull in the new data set and re-use most of the codes you created for the first one.
+
+One thing to know about R is that there may be many paths to get to some action you are trying to do. What is in here is what I know at this point in time, which is pretty limited.  You will probably find methods that are different and work as well or better.
+
+## Beginnings
+Initially, I just wanted to make nice figures! That's what I focused on for pretty much the first year.  Then I wanted to make maps. The last thing I worked with was the actual data analysis. 
+
+R is a continual learning process!
+
+## HELP!!
+Working in R is a big learning curve for those of us that don't code! But there can be immediate satisfaction in creating maps, and eventually R grows on you because there is so much you can do with it. You are going to run into dozens of instances where something isn't working or you can't find instructions on how to do something.  How can you find answers? I've listed a few places you can go for help. 
+
+- Search engines are your friend! Seriously. There is a tremendous amount of great information through StackExchange, Bookdown, and other sources that will come up when you search.
+
+- Use R's "Cheatsheets". They're online and free! I have "Cheatsheets" for R Markdown, tidyr, ggplot, dplyr, data wrangling, and more. It is super helpful to collect these and refer to them.
+
+- Invest in the book "R for Data Science" by Hadley Wickham and Garrett Grolemund.  
+
+- Attend ITEP R trainings and ITEP Data Management Drop-In sessions. Expect to take several! Possibly Coursera or other self-paced classes may also be helpful. 
+
+- Find a friend and/or mentor. I will help where I can.
+
+# R coding basics 
+
+## Install R
+This report assumes that the reader knows some basics about R, but also provides some basic information to help jog memories.  Before getting started in using R to write a report, you need to
+
+- Install R on your computer
+- Install R Studio on your computer
+
+## Set up Panes
+From R Studio, arrange the four window panes in a manner that is easiest for you to work with and stick with that.  
+
+- Go to the top bar and select View/Panes. Select "Show all panes" and "Console on Left".  
+- Go to View/Panes/Pane Layout. For now, place "Source" pane on the top left, "Console" pane on the bottom left, "Environment, History, Connections" on the top right, and "Files, Plots, Packages" on the bottom right.
+
+**TIP:** At the top right of the Environment pane is an icon that says "List" or "Grid". Toggle back and forth between these.  You can only OPEN data frames in the "list". You can only DELETE data frames or values in the "Grid".
+
+## Code chunks
+A "chunk" of code tells R what operation or set of operations you want to run. This could be mathematical operations, creating figures, performing data analysis, make maps, etc.  "Chunks" always show up in gray. 
+
+**TIP**: Use Ctrl+Alt+I to create an r chunk.  
+
+**TIP:** To collapse a chunk, select the small arrow on the left, by the line numbers.
+
+Once created, name the chunk. You do this so that you can move between code chunks easily (at the bottom of the writing pane is a place to find chunk names). Do NOT put any commas or colons or any other symbols between the letter "r" and the chunk name.  The chunk we created above is called "libraries".
+
+It can also be helpful to write notes inside the chunk; this is material that is not actually code. To do this, use a hashtag INSIDE the chunk. If you don't use a hashtag, R tries to "run" the text as code and you'll get an error.
+
+The first code chunk we are going to write will tell the document how you want the chunks handled. The first code chunk is going to apply to all chunks that follow it. The grey chunk on lines 79-80 says 
+
+- don't display code messages or warnings, and stop running the code if there is an error
+- DO print out the code chunk in the document (echo=TRUE); normally you want the code to say echo=FALSE because normally you don't want the code to show in your Water Quality Report. When this document is printed, I do want people to see the code.
+- make the document an "html", not a "doc" or "pdf"
+
+You have to click on the green arrow on the right of the grey "chunk" or go to the top bar and select "Run" to actually have R perform the work.
+
+```{r document default setup}
+#This will apply to ALL the code chunks, unless a later chunk specifically changes one of them.
+knitr::opts_chunk$set(message =FALSE, warning=FALSE, error = FALSE, echo=TRUE)
+options(knitr.table.format = "html") 
+```
+
+
+**TIP:** What goes in the first r code chunk will apply to all r code chunks
+
+**TIP:** Keep code chunks small, and run them right after they are created to make sure they work.
+
+**TIP:** Text written outside of a chunk will show in the final document. Text written with a hashtag inside a chunk will not show.
+
+**TIP:** If you want the actual code to show up in the final document, use {r, echo=TRUE}.
+
+### Action - Install packages
+Install packages. These can be found in the "Packages" tab of the lower right pane ("Files, Plots, Packages" pane). These only need to be installed ONCE, although it's good to check for updates occasionally. 
+
+The ones we will load today are:
+dplyr
+geojsonsf
+kableextra
+knitr
+leafem, leaflet, leafletmini, leafsync, leafpop
+lubridate
+maps, mapview
+openxlsx, readxl
+sf
+tidyverse
+treemap, treemapify
+viridis, viridislight
+
+We may not need all of them, but there is no downside to loading more than you need.
+
+### Action - Pull in libraries
+Installing packages is the first part. Then you need to add them to your "library".
+
+Libraries are how R knows which packages you intend to use in this particular document.  Each report may require different packages. Once a package is installed, it does not need to be installed again. However, the "library" must be called up every time the R scrip is opened. Start by just using the ones in the "code chunk" below, which are all the packages you just loaded. although it is more than you will need! This "libraries" code chunk needs to be "called in" (run) EVERY TIME that the R scrip is closed and opened again.
+
+```{r libraries}
+#you must install packages ("Files, Plots" pane) and then call them up with "library" for R to work (as a code chunk in the "Source" pane).   
+# Notice that we are not putting all of the packages we loaded into the library.  The libraries are still more than you will need. There isn't a downside to calling in more libraries than you will use.
+
+library(readxl)
+library(tidyverse)
+library(treemap)
+library(treemapify)
+library(leaflet)
+library(leaflet.minicharts)
+library(sf)
+library(leafem)
+library(viridis)
+library(viridisLite)
+library(leafsync)
+library (mapview)
+library(openxlsx)
+library(knitr)
+
+```
+
+## Define html parameters
+Create an R chunk. 
+Type ```{=html}  because interactive maps need to be created as html documents (other options are to create a document in Word or PDF, but maps cannot be interactive in them). For now, just copy what is below. Play with values like max-width, font-size, etc as you like.
+
+Note that even though it is a "chunk", it does not "Run".
+
+```{=html set up}
+<style>
+  body .main-container {
+        max-width: 2500px;
+  }
+  body, td {
+  font-size: 16px;
+  }
+  #TOC {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 250px;
+  height: 100%;
+  overflow:auto;
+  }
+</style>
+```
+
+
+
+## What if...?
+There may be times when something you try to follow here fails, but here are a few things to keep in mind.
+
+- If what should be text is showing up in color, check to see if there are three dots (which end a code chunk) outside of a code chunk.  This can happen when moving chunks around.
+
+- If there is a red "x" on the side of line, the line won't run. There is probably something wrong with syntax, like a comma in the wrong place.
+
+- If there are several lines of code within a chunk, run each separately (use Ctrl+ Enter with the cursor on the code). This will help isolate what part of the chunk is causing a problem.
+
+<br>
+
+
+
+# Tell R where your stuff is
+It is necessary to tell R Markdown what folder has all the information that you will be using.  I would suggest setting up a single folder for your year or years of interest and call it something like "Culverts Project 2022". The one I am using is called "How to R".  Within that, set up three folders:  
+
+- "Data" folder where your Excel or csv sheets are held
+- "Images" folder where any photos or other .jpg, .png, .pdf items are held
+- "Shapefiles" folder where any material for creating maps are held.
+
+## Action - Set up folders and sub-folders
+Once the folders are created on your computer, you need to tell R how to find them. 
+
+Go to the "Files" tab in the "Files, Plots, Packages" pane. Navigate to the main folder where you hold the Data, Image, and Shapefile folders. See the little house at the top of that pane? Next to that is the sequence of folders that lead to the folder you want. For me, it looks like: Home>WQ monitoring>Baseline stream WQ> WQ monitoring_Reports.  
+
+Above all of that is a little icon that looks like a gear and the word "More". Click on the arrow next to that. Select "Set as working directory". Then select "Copy Folder Path to Clipboard". Paste it into the code below to be your Base Directory (base_dir).
+
+- You must use the name of a folder in your computer as the base directory.
+
+```{r Define the main folder to pull information from}
+#Define the main working directory file (base_dir). Note that you will NOT be able to run this code. You need to set up your own folders.
+
+base_dir <- "~/WQ monitoring/Baseline stream WQ/WQ monitoring_Reports/How to R"
+```
+
+To set up the subfolders, you need to use the code "paste0". For now just use the code shown in the chunk. The symbols are very specific to having R recognize what you want it to do. 
+
+- You CAN run this R chunk once you have defined base_dir using your own personal folder and set up "Data", "Images" and "Shapefiles" folders in your personal folder.  The Data, Images, and Shapefiles folders can be the ones I placed in the shared Google Drive, or they can be your own that you created with your own documents inside them.
+
+```{r Define subfolders}
+#Define subfolders. Normally there are three main subfolders (Data, Shapefiles, and Images). Note that you need paste0 and you need "/Name/". Do NOT add a period, comma, or any other symbols.
+
+data_dir<- paste0(base_dir,"/Data/")
+image_dir<- paste0(base_dir,"/Images/")
+shape_dir<- paste0(base_dir,"/Shapefiles/")
+
+```
+
+**TIP:** Pay attention if a little red x shows up at the line number.  This tells you something is NOT going to work. Often all you need to do is change a comma, quotation mark, or other symbol in the code.  
+
+**Reminder tip** Run every chunk after you've created it to make sure it works before going on.
+
+** Every line that was run in the code should show up in your "Environment" pane (top right)
+
+## Action - Call in data sheet
+This is how you tell R what you want to work with. For a report you can "call in" images, shapefiles, and data sheets.  For creating a simple map, we will call in shapefiles and one or two Excel sheets with some data points, such as where culverts are or where Brownfield sites are. 
+
+
+```{r bring in data sheets, results='hide'}
+#this is where you define and import the actual data, shapefile, or image you want to use. We will bring in shapefiles later. Below are the Excel sheets that I want to add to my map.
+
+
+Towns<-read_excel(paste0(data_dir,"TownLocations.xlsx"))
+
+Locations<-read_excel(paste0(data_dir,"WQ locations for 2023 Report.xlsx"))
+```
+
+On the left side of the equation is what you want to call your data. 
+You must use "MyDataName <-" with a name that has no spaces. 
+On the right side of the arrow is what will be read in.  
+For data, it will be read_excel, read_xlsx, or read_csv.  You must have the "read_excel" or "read_xlsx" or "openxlsx" packages loaded and read in "libraries" to use an Excel sheet.
+
+You must use (paste0) to call in the folder that contains the data sheet you want.
+
+
+**TIP:** The pattern to tell R what data sheet you want to use is MyDataName<- then read.xlsx (or read_excel) or read.csv then paste0 then subfolder then "name of data sheet". The data sheet name must be exactly the name of the document, in quotation marks, and it's ok to have spaces in whatever name is inside the quotation marks. 
+
+
+# Create a watershed map!
+Here is one of those visually satisfying things that makes the R struggle worthwile. 
+
+You already called in the USGS shapefile of HUC 10 watersheds for the Matanuska area (HUC 8 area 19020402).  Use "mapview" to view what you made.
+
+## Action - Call in shapefiles
+So, do you know how to call in a shapefile? There is a lot of free material available from federal agencies, state agencies, and boroughs/counties.  Try search engines to find some that might interest you. Although it is files with the ending .shp that is of interest, you usually have to pull in an entire folder (which might have files with endings like .prj, .shx, .dbf, etc.)
+
+When you find a folder of interest, put it in your "Shapefiles" folder, one of your three main folders.
+
+Here we will use shapefiles from USGS to get watershed boundaries, shapefiles from the state for anadromous waters and towns, and from an Excel sheet for sampling site locations. In my main folder, I have the following stored
+<br>
+- in Shapefiles folder, there are folders called "Boroughs", "AWC Southcentral", and "NHD_H_19020402_HU8_Shape.  I could certainly rename them with shorter names!
+- in Data folder, there is an Excel worksheet called "WQ locations for 2023 report" and one called "TownLocations".
+<br>
+
+This shows the sequence of calling in 
+the main folder(s), 
+the subfolder(s), 
+and specific shapefiles within them. 
+The names on the left ("watershed_dir" etc.) are ones that you create in a way that makes it easy for you to remember and handle them.
+
+```{r call in shapefiles to make maps, results='hide'}
+
+#Remember that you already created a "directory" that ties to the Shapefiles main folder
+shape_dir<- paste0(base_dir,"/Shapefiles/")
+
+#There are subfolders within the main folder. Create short names (watershed_dir, AWC_dir, etc) for subfolders. Note that you MUST put a period in front of the / for this to work.
+Watershed_dir<-paste0(shape_dir,"./NHD_H_19020402_HU8_Shape/Shape/")
+AWC_dir<-paste0(shape_dir, "./AWC Southcentral/")
+MSB_dir<-paste0(shape_dir, "./Boroughs/")
+
+#There are shapefiles inside the subfolders. Call out specific shapefiles. The names on the left are ones you create. Note that you MuST use quotation marks around the shapefile name for this to work.
+MatWshdHUC10 <- sf::read_sf(paste0(Watershed_dir,'WBDHU10.shp'))
+Towns<-sf::read_sf(paste0(MSB_dir, 'Towns_Pt.shp'))
+AWC1<-sf::read_sf(paste0(AWC_dir, "scn_point.shp"))
+AWC2<-sf::read_sf(paste0(AWC_dir, "scn_stream.shp"))
+           
+#compare to calling out a specific Excel from the Data folder - above is read_sf while data is read_xlsx or read_excel
+Locations<-read_excel(paste0(data_dir,"WQ locations for 2023 Report.xlsx"))
+```
+
+**TIP:** Syntax matters! The base directory requires the pattern "/NAME/", the subfolders require the pattern "./NAME/", and the shapefile requires the pattern "NAME.shp".
+
+**TIP:** To call in a specific document, like an Excel workbook or a file ending in .shp, you need to use (paste0).
+
+Once you've done everything above, you will have some new blue icons in the Environment pane: AWC1, AWC2, Locations, MatWshdHUC10, and Towns.
+
+Check that the Environment pane is showing a "List" not "Grid" view. Click on one of these icons. It will show up on top of the writing pane as a data frame! Look to see where the coordinates are in the data frame. Data that are points usually have columns for Latitude and Longitude. Data that are polygons usually have a column named "geometry". This becomes important if you want to trim the shapefile to focus on a specific area.
+
+**Map: Simple map of watershed boundaries**
+```{r map the Matanuska river basins, results='hide'}
+
+#Remember that you already called in the HUC0 watersheds for the Matanuska River area 
+MatWshdHUC10 <- sf::read_sf(paste0(Watershed_dir,'WBDHU10.shp'))
+
+#This creates some base layer maps
+mapviewOptions(basemaps = c("Esri.WorldImagery", "OpenStreetMap"),
+               layers.control.pos = "topleft")
+
+#This lets you view the map
+mapview(MatWshdHUC10, layer.name = "River Basins")
+
+```
+
+Let's add to the map. You can say whether you want a legend, whether you want the HUC10 shapes to be in a color, how thick you want the boundaries between watersheds, and the name of the layer. If you want the names of the watersheds to show when you hover over the map, use the term popup="name" in the mapview code.
+
+Just "run" the code chunk for now. You can play with parts of it later.
+
+```{r Color and name the map layer}
+#view the map. 
+mapview(MatWshdHUC10, legend = FALSE, col.regions = "#99CCFF", alpha.regions = 0.4, homebutton = FALSE,layer.name = "River Basins", popup = "name")
+
+#give a name to the mapview to use later
+MatWshd10map<-mapview(MatWshdHUC10, legend = FALSE, col.regions = "#99CCFF", alpha.regions = 0.4, homebutton = FALSE,layer.name = "River Basins", popup = "name")
+```
+
+You can have the subwatersheds show up as different colors using colorRamp. You need to use "zcol" to tell R what to base the different colors on. "Zcol" must be exactly the name that is the column header in the data frame. Open the MatWshdHUC10 data frame to see the choice of column headers.
+
+Below we code for the map to:
+
+- Base colors on the name of the subwatershed. 
+- Base colors on the size of the subwatershed. 
+- If you want every subwatershed to be a slightly different color, use (12) for the 12 subwatersheds. If you want only a few colors, use a lower number.
+
+**Map:  Watershed color based on name or size**
+```{r Multicolors for subwatersheds}
+#Map with colors based on watershed name
+mapview(MatWshdHUC10, zcol="name", col.regions=(colorRampPalette(c("snow","cornflowerblue"))(12)), layer.name="Watersheds (HUC10)")
+
+#Map with colors based on watershed size
+mapview(MatWshdHUC10, zcol="areasqkm", col.regions=(colorRampPalette(c("snow","cornflowerblue"))(12)), layer.name="Watersheds (HUC10)")
+
+#if this is something you want to map in the multi-layer map, give it a name to easily call in this specific set of colors etc.
+```
+
+Check the "Viewer" in the Files/Plots/Packages pane. You should see a map there. Click the back arrow above the map and you should see the other map that you created.
+
+**TIP:** Zcol tells R what to perform an action on in a map.
+
+**TIP:** What is identified in the zcol must be in quotes and must be the exact column header. If your header is "name" and you put zcol="NAME", it won't work; it needs to be zcol="name".
+
+## Add a map layer of towns
+Let's add some towns so people can quickly orient themselves. Note that we include Wasilla, which is outside the Matanuska River basin, and unfortunately, our shapefile data does not have Glacier View which is well within the basin!
+
+**Map: Matanuska River towns**
+```{r MSB towns}
+#This creates some base layer maps
+mapviewOptions(basemaps = c("Esri.WorldImagery", "OpenStreetMap"),
+               layers.control.pos = "topleft")
+
+#Remember that you already pulled in a shapefile that you called "Towns"
+Towns<-sf::read_sf(paste0(MSB_dir, 'Towns_Pt.shp'))
+
+#Now choose the towns that you want to show on the map
+MSBTowns<-subset(Towns, Towns$NAME%in% c("Chickaloon", "Sutton", "Palmer", "Wasilla"))
+
+#Below are some ways to show the towns.  1) As red dots with no labels. 2) As colored dots based on population.
+mapview(MSBTowns, alpha.regions=0.4, col.regions="red", layer.name="Towns", cex=5)+MatWshd10map
+             
+mapview(MSBTowns, zcol="POP", layer.name="Towns") + MatWshd10map
+```
+
+**TIP:** cex is how you control the size of the dots
+
+**TIP:** col.regions is how you control the color of the dots
+
+**TIP:** zcol is how you control what you want in a legend
+
+If you name the mapviews, it makes it easy to call in one view (without populations) or the other (with populations) in a map layer.  Below, adding the "TownMap" layer will add towns that are small (cex=3) red dots with a layer called "Towns" and adding the "TownPopMap" will add towns as colored dots based on population in a layer named "Town Populations". 
+
+```{r naming Town mapviews}
+
+TownMap<-mapview(MSBTowns, alpha.regions=0.4, col.regions="red", layer.name="Towns", cex=3)
+
+TownPopMap<-mapview(MSBTowns, zcol="POP", layer.name="Town Populations")
+```
+
+To place the TownMap on the watersheds map, add it with "+"
+
+**Map: Matanuska River basin towns and anadromous streams**
+```{r}
+mapview(MatWshdHUC10,  col.regions = "#F0FFFF", layer.name="Watersheds (HUC10)") + TownMap
+```
+
+Well that would be more useful if the towns were against a base map and labeled with their names. Labeling the town names can be surprisingly difficult!
+```{r labeling towns with names}
+#This puts the names of towns on the map, but it won't add any points where the towns are
+
+leaflet(MSBTowns) %>% 
+  addStaticLabels(., label=MSBTowns$NAME)
+
+#This places circles with the towns labeled - but I have not found a way to make the circles smaller or change their color.  It is surprisingly difficult to find a way to label points if there is no lat-long column!
+leaflet(MSBTowns)%>%
+  addProviderTiles("OpenStreetMap")%>%
+  addFeatures()%>%
+  addStaticLabels(label=MSBTowns$NAME, style=list("font-weight"="bold"),  offset=c(5,-8))
+  
+```
+
+The best way to put labels on points is to create an Excel or csv sheet with a column for the point name (town name, sample site name, etc) and columns for latitudes and longitudes. 
+```{r label points}
+#If you open the MSBTowns data set, the "geometry" column has the specific latitude and longitude for each town. YOu can copy/paste this into a new Excel or csv and call in that new worksheet. I called my worksheet "TownLocations" and I used the same name to identify it when I called it in
+
+Towns<-read_xlsx(paste0(data_dir,"TownLocations.xlsx"))
+
+#Now when you open "TownLocations", you'll see the same dataframe as "MSBTowns" except it now has Latitude and Longitude instead of a "geometry" column
+```
+
+## Add a map layer of sample site locations
+Let's look at adding a single site, and adding all sample sites, to a watershed map.
+
+If we want to map points, they must have a coordinate system like Latitude and Longitude. The coordinates I took used the NAD83 system, so that is included in the setup.
+
+```{r Set up one site to map}
+
+#Pull your location of interest out of a data frame. Since we already have the "Locations" data frame, we can use that. We ONLY want the coordinates this time, so let's provide a name for the site coordinates.
+CARCRKxy<-Locations%>%
+  dplyr::filter(SiteID=="CARCRK2.8")%>%
+  dplyr::select(Latitude, Longitude)
+
+#then we need all the stuff on the right hand of the <- to tell R to map it.
+CARCRKSite <- st_as_sf(x = CARCRKxy, 
+                      coords = c("Longitude", "Latitude"),
+             crs = "+proj=longlat +datum=NAD83")
+```
+
+Now you want to create a "map layer" of your site (or sites) and show it on the map. You may want to have your sample site show up on a map as a specific color or size. 
+
+**Map: One sample site**
+```{r mapping site locations}
+#If you want CARCRKSite on a map layer, you don't need to do anything - only use "+ CARCRKSite" when you develop the map. However, if you want to define the size or color of the marker, you may want to define that in "mapview". Below, cex defines the size of the marker and col.regions lets you change the color.
+
+mapviewOptions(basemaps = c("Esri.WorldImagery", "OpenStreetMap"),
+               layers.control.pos = "topleft")
+
+mapview(CARCRKSite,
+                 col.regions="black",
+                 cex=3, 
+                 alpha.regions=1)
+
+#If you then want to make sure that CARCRK shows up with a small black marker on maps, you can change the color and give the mapview a name. That will retain all the qualities you defined.
+CARCRKmap<-mapview(CARCRKSite,
+                 col.regions="black",
+                 cex=3, 
+                 alpha.regions=1)
+```
+
+Let's look at all the sample sites. Note that if we don't have a base map, we will only see some collection of dots without a map -- but it will at least give you an idea if it looks like the points are relatively like reality.
+
+**Map: All sample sites**
+```{r mapping all sample sites}
+
+mapviewOptions(basemaps = c("Esri.WorldImagery", "OpenStreetMap"),
+               layers.control.pos = "topleft")
+
+#Tell R that you have coordinates in your data frame.
+SampleSites <- st_as_sf(x = Locations, 
+                        coords = c("Longitude", "Latitude"),
+                        crs = "+proj=longlat +datum=NAD83")
+
+#see what that looks like on a map
+mapview(SampleSites,
+                 col.regions="black",
+                 cex=3, 
+                 alpha.regions=1)
+
+#name the map layer
+Sites <- mapview(SampleSites,
+                 col.regions="black",
+                 cex=3, 
+                 alpha.regions=1)
+```
+
+**TIP:** Adding layers to a map does not REQUIRE each layer to have "mapview" qualities identified. Creating qualities and naming them does make it easy to pull in map layers that have specific qualities you want without having to re-define them.
+
+
+## Putting all the layers together in one map
+Finally! Actually putting it all together is pretty fast. You can choose which of the layers you made that you want to show in a map.
+
+An easy way to make the map is to code for the base maps, provide details for one of your maps, then use the + sign to add more of the dataframes or the "mapviews" that you created above.
+
+**Map: Matanuska River sample sites and towns**
+```{r Watershed map #2}
+#change what is in + to add or remove layers
+
+mapview(MatWshdHUC10,  col.regions = "#F0FFFF", layer.name="Watersheds (HUC10)") + Sites+TownMap
+```
+
+
+You can get creative and change the layers "on the fly" if they don't work when you are making maps with different layers.  You do this by creating a new "mapview". 
+
+**TIP:** Check the Environment pane to see what "Names" are map layers. 
+
+## Labeling points
+These are ways to add site name labels, but none were very good.
+```{r site name popups map, results='hide'}
+#leaflet version of the mapview, allows names to be added
+#note that you may, or may not, end up with names on a blank page, no background map, if this is not added above "leaflet": data(WQData)
+
+leaflet(Locations) %>% 
+  addTiles() %>% 
+  addLabelOnlyMarkers(~Longitude, ~Latitude, 
+label = paste(Locations$SiteID),
+labelOptions = labelOptions(noHide = TRUE, 
+                            offset=c(5,-20),
+                            textOnly = TRUE))%>%
+  addPopups(~Longitude, ~Latitude,
+            popup = Locations$SiteName,
+            options(keepInView=FALSE, autoPan=TRUE, closeButton=TRUE))%>%
+   addScaleBar(position = "bottomleft")
+```
+
+```{r site labels map, results='hide'}
+#note that what should be options for zoomin or interactive do not create any changes to the map that this creates
+leaflet(Locations) %>% 
+  addTiles() %>% 
+  addLabelOnlyMarkers(~Longitude, ~Latitude, 
+                     label = paste(Locations$SiteID),
+                     labelOptions = labelOptions(noHide = TRUE, 
+                                                 offset=c(5,-20),
+                                                 textOnly = TRUE))
+```
+
+```{r cluster labels map}
+#this uses "cluster options" which we can play with to show site ID or site Name when you zoom in to a circle. Can it be done in mapview?
+#try cluster options and data=getMapData
+
+leaflet(Locations) %>% 
+  addTiles() %>% 
+  addLabelOnlyMarkers(~Longitude, ~Latitude, 
+                      label = paste(Locations$SiteID),
+                      labelOptions = labelOptions(noHide = TRUE, 
+                                                 offset=c(5,-20),
+                                                 textOnly = TRUE),
+                      clusterOptions = markerClusterOptions())
+```
+<br>
+
+# Advanced - AWC points
+The AWC catalogues are not specific to the Matanuska Watershed. In order to capture only ones in the watershed, we use a "filter" to limit the data set by longitude and latitude. This isn't perfect; I'm sure there is a better method I just haven't learned yet.
+
+For now, just follow the chunks below.
+
+The first chunk filters by longitude by removing anything that is bigger than longitude -149.1.  Then remove anything that is less than longitude -147.6. What is left is the longitudes that encompass the Matanuska River watershed.  Note that the order of piping (the %>% symbol) can be important. The second chunk filters by latitude, using the already filtered data set MatAWC_longitude.
+
+```{r filter AWC point longitude, results='hide'}
+
+#Longitudes can be limited by filtering a range; however because they have a negative sign in front of them, R interprets <-147.6 as having a symbol <- and rejects the code as nonsense unless it is placed within a set of parentheses
+MatAWC_longitude<-AWC1%>%
+  dplyr::filter(LONGITUDE>-149.1)%>%
+  dplyr::filter(LONGITUDE<(-147.6))
+```
+
+```{r filter AWC point latitude, results='hide'}
+
+#this DOES work to capture latitudes between 61.6 and 61.9 within the area we already trimmed by longitude
+AWCpoint_Mat<-MatAWC_longitude%>%
+  dplyr::filter(LATITUDE>61.6)%>%
+  dplyr::filter(LATITUDE<61.9)
+
+```
+
+
+**Map: Sample site location, towns, and AWC sites in watershed**
+```{r Watershed map #1}
+
+#this provides the base maps
+mapviewOptions(basemaps = c("Esri.WorldImagery", "OpenStreetMap"),
+               raster.palette = grey.colors,
+               vector.palette = colorRampPalette(c("snow", "cornflowerblue", "grey10")),
+               na.color = "magenta",
+               layers.control.pos = "topleft")
+
+#this adds the layers -- note that we have used a mix of layers that DO have defined "mapviews" (TownMap) and those that don't.
+mapview(MatWshdHUC10,  col.regions = "#F0FFFF", layer.name="Watersheds (HUC10)") +AWCpoint_Mat + CARCRKmap+TownMap 
+```
+
+
+**Map: Matanuska River sample sites, towns, and anadromous sites**
+```{r changing mapviews}
+#If you want to change the layer color or name as you are creating a multi-layer map, you need to add an additional "mapview" set.
+
+#Here we change the AWCpoint_Mat colors (which are the actual locations where fish photos and documentation were collected) to a grey color.
+mapview(MatWshdHUC10,  col.regions = "#F0FFFF", layer.name="Watersheds (HUC10)") + mapview(AWCpoint_Mat, col.regions="grey", layer.name="Documentation of anadromous fish") + Sites+TownMap
+```
+
+<br>
+```{=html}
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+```
+::: blue
+# Knitting
+:::
+<br> 
+Let's look at what we made!
+
+Go to the ball of yarn icon at the top of the "Source" pane, open it and select "knit to html". 
+
+**TIP:** Before you knit, make sure that every code chunk will run! Either hit "Run All" at the top of the Source pane or go individually through each chunk yourself (Ctrl+Alt+N will move to each following chunk).
+
+<br>
+```{=html}
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+```
+::: blue
+# Summary
+:::
+<br> 
+That is a LOT of information! 
+
+I would suggest using this as a reference, along with other references I've provided. Replace my data with yours and move through it. There will inevitably be code chunks that won't work. Use search engines first to see if you can figure out the block. Also consider attending the Tribal Data Drop in that is once a month through ITEP. I'm willing to help as well, but sometimes what seems like a small problem may end up being something that takes a huge amount of time to figure out.
+
